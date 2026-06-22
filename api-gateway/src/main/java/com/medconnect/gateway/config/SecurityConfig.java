@@ -32,12 +32,12 @@ public class SecurityConfig {
                 // Toujours laisser passer les preflight OPTIONS
                 .pathMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 .pathMatchers(
-                    "/actuator/**",
+                    "/actuator/**",       // health + prometheus (scrape par monitoring)
                     "/v3/api-docs/**",
                     "/swagger-ui.html",
                     "/swagger-ui/**",
                     "/webjars/**",
-                    "/aggregate/**"
+                    "/aggregate/**"       // Swagger central agrege les docs des MS
                 ).permitAll()
                 .anyExchange().authenticated()
             )

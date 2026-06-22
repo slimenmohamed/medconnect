@@ -218,6 +218,14 @@ services:
       api-gateway: { condition: service_healthy }
     ports:
       - "80:80"
+    # Healthcheck simple : un GET / sur Nginx doit retourner 200.
+    # wget est present dans l'image nginx:alpine.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost/ || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     networks: [medconnect-net]
 
 networks:

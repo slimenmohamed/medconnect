@@ -2,6 +2,7 @@ package com.medconnect.appointment.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -25,6 +26,17 @@ public class GlobalExceptionHandler {
         e.getBindingResult().getFieldErrors().forEach(fe -> errors.put(fe.getField(), fe.getDefaultMessage()));
         body.put("fieldErrors", errors);
         return ResponseEntity.badRequest().body(body);
+    }
+
+    /**
+     * IMPORTANT : Spring Security lance AccessDeniedException sur les violations
+     * @PreAuthorize. Sans handler dédié, le @ExceptionHandler(Exception.class)
+     * ci-dessous l'attraperait et renverrait 500 au lieu de 403.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(body(403, "Forbidden", "Acces refuse : role insuffisant"));
     }
 
     @ExceptionHandler(Exception.class)

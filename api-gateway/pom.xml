@@ -53,6 +53,13 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Micrometer Prometheus (bonus monitoring) :
+             expose /actuator/prometheus pour scraping. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!-- Swagger agrégé (bonus) -->
         <dependency>
             <groupId>org.springdoc</groupId>

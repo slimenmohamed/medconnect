@@ -1,5 +1,6 @@
 package com.medconnect.appointment.messaging;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -73,9 +74,14 @@ public class RabbitConfig {
         return BindingBuilder.bind(appointmentCancelledQueue).to(medconnectExchange).with(APPOINTMENT_CANCELLED_KEY);
     }
 
+    /**
+     * Utilise l'ObjectMapper auto-configure par Spring Boot (avec
+     * JavaTimeModule enregistre) pour serialiser LocalDateTime en ISO-8601
+     * plutot qu'en array [2026,6,22,...]
+     */
     @Bean
-    public MessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter();
+    public MessageConverter jsonMessageConverter(ObjectMapper springObjectMapper) {
+        return new Jackson2JsonMessageConverter(springObjectMapper);
     }
 
     @Bean
