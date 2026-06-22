@@ -1,0 +1,58 @@
+<nav class="navbar navbar-expand-lg navbar-medconnect shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold" routerLink="/">
+      <i class="bi bi-plus-square-fill me-2"></i> MedConnect
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navCollapse">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navCollapse">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item" *ngIf="auth.isPatient()">
+          <a class="nav-link" routerLink="/patient/mes-rdv"  routerLinkActive="active">Mes RDV</a>
+        </li>
+        <li class="nav-item" *ngIf="auth.isPatient()">
+          <a class="nav-link" routerLink="/patient/prendre-rdv" routerLinkActive="active">Prendre RDV</a>
+        </li>
+        <li class="nav-item" *ngIf="auth.isPatient()">
+          <a class="nav-link" routerLink="/patient/dossier"  routerLinkActive="active">Mon dossier</a>
+        </li>
+
+        <li class="nav-item" *ngIf="auth.isDoctor()">
+          <a class="nav-link" routerLink="/doctor/planning"  routerLinkActive="active">Planning</a>
+        </li>
+
+        <li class="nav-item" *ngIf="auth.isAdmin()">
+          <a class="nav-link" routerLink="/admin/patients" routerLinkActive="active">Patients</a>
+        </li>
+        <li class="nav-item" *ngIf="auth.isAdmin()">
+          <a class="nav-link" routerLink="/admin/doctors"  routerLinkActive="active">Médecins</a>
+        </li>
+      </ul>
+
+      <ul class="navbar-nav">
+        <ng-container *ngIf="!auth.isLoggedIn(); else loggedTpl">
+          <li class="nav-item">
+            <button class="btn btn-outline-light btn-sm" (click)="login()">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Connexion
+            </button>
+          </li>
+        </ng-container>
+        <ng-template #loggedTpl>
+          <li class="nav-item d-flex align-items-center">
+            <span class="navbar-text me-3">
+              <i class="bi bi-person-circle me-1"></i>
+              {{ auth.username() }}
+              <small class="opacity-75">({{ auth.roles().join(',') }})</small>
+            </span>
+            <button class="btn btn-outline-light btn-sm" (click)="logout()">
+              <i class="bi bi-box-arrow-right me-1"></i> Déconnexion
+            </button>
+          </li>
+        </ng-template>
+      </ul>
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,42 @@
+/* =========================================================
+   MedConnect - styles globaux (cohérent avec le thème Keycloak)
+   ========================================================= */
+:root {
+  --mc-primary: #1976d2;
+  --mc-primary-dark: #0d47a1;
+  --mc-accent: #00acc1;
+  --mc-bg: #f5f9ff;
+}
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--mc-bg);
+  color: #0f172a;
+}
+
+.navbar-medconnect {
+  background: linear-gradient(135deg, var(--mc-primary) 0%, var(--mc-primary-dark) 100%) !important;
+}
+.navbar-medconnect .navbar-brand,
+.navbar-medconnect .nav-link,
+.navbar-medconnect .navbar-text { color: #fff !important; }
+.navbar-medconnect .nav-link.active { font-weight: 700; }
+
+.btn-primary {
+  background-color: var(--mc-primary) !important;
+  border-color: var(--mc-primary) !important;
+}
+.btn-primary:hover {
+  background-color: var(--mc-primary-dark) !important;
+  border-color: var(--mc-primary-dark) !important;
+}
+
+.page-title { color: var(--mc-primary-dark); font-weight: 700; }
+
+.card { border: none; border-radius: 12px; box-shadow: 0 4px 16px rgba(13, 71, 161, 0.08); }
+.badge-status-PENDING   { background:#ffc107; color:#000; }
+.badge-status-CONFIRMED { background:#198754; color:#fff; }
+.badge-status-CANCELLED { background:#dc3545; color:#fff; }
+.badge-status-COMPLETED { background:#0d6efd; color:#fff; }
