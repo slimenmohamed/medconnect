@@ -1,0 +1,32 @@
+{
+  "name": "medical-records-service",
+  "version": "1.0.0",
+  "description": "MedConnect - Service Node.js de dossiers médicaux et prescriptions",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "eureka-js-client": "^4.5.0",
+    "express": "^4.19.2",
+    "express-async-errors": "^3.1.1",
+    "js-yaml": "^4.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.1.0",
+    "mongoose": "^8.4.0",
+    "morgan": "^1.10.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
