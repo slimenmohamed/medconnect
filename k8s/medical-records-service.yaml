@@ -1,0 +1,35 @@
+# Manifest K8s minimaliste pour medical-records-service (BONUS)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medical-records-service
+  labels: { app: medical-records-service }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: medical-records-service }
+  template:
+    metadata:
+      labels: { app: medical-records-service }
+    spec:
+      containers:
+        - name: medical-records-service
+          image: medconnect/medical-records-service:1.0.0
+          ports: [{ containerPort: 5001 }]
+          env:
+            - { name: CONFIG_SERVER_URL, value: http://config-server:8888 }
+            - { name: EUREKA_HOST,       value: discovery-server }
+          readinessProbe:
+            httpGet: { path: /health, port: 5001 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: medical-records-service
+spec:
+  type: LoadBalancer
+  selector: { app: medical-records-service }
+  ports:
+    - { port: 5001, targetPort: 5001 }

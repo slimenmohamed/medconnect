@@ -1,0 +1,51 @@
+name: MedConnect CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-java:
+    name: Build & test Java services
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [config-server, discovery-server, appointment-service, api-gateway]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Maven build
+        working-directory: ${{ matrix.module }}
+        run: mvn -B -q clean package -DskipTests
+
+  build-node:
+    name: Build Node service
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install deps
+        working-directory: medical-records-service
+        run: npm install --no-audit --no-fund
+
+  build-frontend:
+    name: Build Angular frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install + build
+        working-directory: frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx ng build --configuration production
