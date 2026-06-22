@@ -1,0 +1,77 @@
+# =========================================================
+# Config spécifique à appointment-service (Spring Boot + JPA)
+# =========================================================
+server:
+  port: 8081
+
+spring:
+  # --- Datasource MySQL (profil docker par défaut, surchargé en local) ---
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:3306/${MYSQL_DATABASE:medconnect_appointments}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8
+    username: ${MYSQL_USER:medconnect}
+    password: ${MYSQL_PASSWORD:medconnectpass}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    # IMPORTANT : laisse JPA créer le schéma AVANT que data.sql ne tente d'insérer
+    defer-datasource-initialization: true
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+
+  # Active le chargement de data.sql (jeu de démo) au démarrage en profil docker.
+  # INSERT IGNORE rend l'opération idempotente.
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+
+  # --- RabbitMQ ---
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: 5672
+    username: ${RABBITMQ_DEFAULT_USER:medconnect}
+    password: ${RABBITMQ_DEFAULT_PASS:medconnectpass}
+
+  # --- Security (Keycloak OAuth2 Resource Server) ---
+  # NB : on n'utilise QUE jwk-set-uri (URL interne pour récupérer les clés
+  # publiques RSA). Pas de "issuer-uri" : sinon Spring auto-valide le claim
+  # "iss" du token contre l'URL interne, alors que le navigateur a fait sa
+  # demande de token via l'URL publique (http://localhost:8180). La signature
+  # + expiry + nbf restent validées par défaut via JwtValidators.createDefault().
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_INTERNAL_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:medconnect}/protocol/openid-connect/certs
+
+# --- Feign : nom logique du service appelé (résolu via Eureka) ---
+medconnect:
+  feign:
+    medical-records-service-name: medical-records-service
+
+# Active les fallbacks Feign via Resilience4j CircuitBreaker
+feign:
+  circuitbreaker:
+    enabled: true
+
+# --- Resilience4j (circuit breaker pour Feign) ---
+resilience4j:
+  circuitbreaker:
+    instances:
+      medicalRecordsCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+
+# --- OpenAPI / Swagger ---
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

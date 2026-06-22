@@ -1,0 +1,24 @@
+# =========================================================
+# Config exposée pour medical-records-service (Node.js)
+# Le service Node peut la consommer en JSON via :
+#   GET http://config-server:8888/medical-records-service/default
+# (voir src/config/configClient.js dans le service Node)
+# =========================================================
+server:
+  port: 5001
+
+mongo:
+  uri: mongodb://${MONGO_USER:medconnect}:${MONGO_PASSWORD:medconnectpass}@${MONGO_HOST:mongo}:27017/${MONGO_DB:medconnect_records}?authSource=admin
+
+rabbitmq:
+  url: amqp://${RABBITMQ_USER:medconnect}:${RABBITMQ_PASS:medconnectpass}@${RABBITMQ_HOST:rabbitmq}:5672
+
+keycloak:
+  # Issuer attendu = URL PUBLIQUE (celle dans le token côté navigateur).
+  # JWKS = URL INTERNE (celle joignable depuis le conteneur).
+  issuer: ${KEYCLOAK_PUBLIC_URL:http://localhost:8180}/realms/${KEYCLOAK_REALM:medconnect}
+  jwks: ${KEYCLOAK_INTERNAL_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:medconnect}/protocol/openid-connect/certs
+
+eureka:
+  host: ${EUREKA_HOST:discovery-server}
+  port: 8761

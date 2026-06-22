@@ -1,0 +1,71 @@
+# =========================================================
+# Config spécifique à api-gateway (Spring Cloud Gateway)
+# =========================================================
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      # Le gateway découvre les services via Eureka.
+      # On définit nos routes explicitement (plus lisible que la découverte auto).
+      discovery:
+        locator:
+          enabled: false
+      routes:
+        # ---------- appointment-service (Java) ----------
+        - id: patients-route
+          uri: lb://APPOINTMENT-SERVICE
+          predicates:
+            - Path=/api/patients/**
+        - id: doctors-route
+          uri: lb://APPOINTMENT-SERVICE
+          predicates:
+            - Path=/api/doctors/**
+        - id: appointments-route
+          uri: lb://APPOINTMENT-SERVICE
+          predicates:
+            - Path=/api/appointments/**
+
+        # ---------- medical-records-service (Node) ----------
+        - id: records-route
+          uri: lb://MEDICAL-RECORDS-SERVICE
+          predicates:
+            - Path=/api/records/**
+        - id: prescriptions-route
+          uri: lb://MEDICAL-RECORDS-SERVICE
+          predicates:
+            - Path=/api/prescriptions/**
+
+        # ---------- Swagger agrégé (bonus) ----------
+        - id: appointment-docs
+          uri: lb://APPOINTMENT-SERVICE
+          predicates:
+            - Path=/aggregate/appointment/v3/api-docs
+          filters:
+            - RewritePath=/aggregate/appointment/v3/api-docs, /v3/api-docs
+        - id: records-docs
+          uri: lb://MEDICAL-RECORDS-SERVICE
+          predicates:
+            - Path=/aggregate/records/v3/api-docs
+          filters:
+            - RewritePath=/aggregate/records/v3/api-docs, /v3/api-docs
+
+  # --- Security (Keycloak OAuth2 Resource Server au niveau gateway) ---
+  # Voir explication dans appointment-service.yml : on ne met QUE jwk-set-uri
+  # pour éviter le mismatch issuer (token iss=localhost:8180 vs interne keycloak:8080).
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_INTERNAL_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:medconnect}/protocol/openid-connect/certs
+
+# --- Swagger UI agrégé : il liste les deux services ---
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: appointment-service
+        url: /aggregate/appointment/v3/api-docs
+      - name: medical-records-service
+        url: /aggregate/records/v3/api-docs

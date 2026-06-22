@@ -1,0 +1,43 @@
+# =========================================================
+# Configuration COMMUNE à tous les microservices MedConnect
+# Récupérée automatiquement par chaque service via config-server
+# =========================================================
+
+# --- Eureka : où se déclarer ---
+eureka:
+  client:
+    service-url:
+      # 'discovery-server' est le nom DNS du conteneur Docker
+      # En local (sans Docker), surcharger par http://localhost:8761/eureka
+      defaultZone: ${EUREKA_URL:http://discovery-server:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    # ID unique = nom-app + UUID pour distinguer les instances multiples
+    instance-id: ${spring.application.name}:${random.uuid}
+
+# --- Actuator : utilisé pour les healthchecks Docker et Prometheus (bonus) ---
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus, gateway
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+# --- Logs lisibles ---
+logging:
+  level:
+    root: INFO
+    com.medconnect: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.security: INFO
