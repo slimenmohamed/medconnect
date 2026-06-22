@@ -3,8 +3,9 @@
  *
  * Topologie (mirror de RabbitConfig.java côté Java) :
  *  Exchange "medconnect.exchange" (topic)
- *   - appointment.confirmed -> queue "appointment.confirmed.q"  (CONSUMED ici)
- *   - prescription.created  -> queue "prescription.created.q"   (PUBLISHED ici)
+ *   - appointment.confirmed -> queue "appointment.confirmed.q"  (CONSUMED ici)  [ASYNC #1]
+ *   - prescription.created  -> queue "prescription.created.q"   (PUBLISHED ici) [ASYNC #2]
+ *   - appointment.cancelled -> queue "appointment.cancelled.q"  (CONSUMED ici)  [ASYNC #3]
  */
 const amqp = require('amqplib');
 
@@ -13,10 +14,13 @@ const APPOINTMENT_CONFIRMED_KEY   = 'appointment.confirmed';
 const APPOINTMENT_CONFIRMED_QUEUE = 'appointment.confirmed.q';
 const PRESCRIPTION_CREATED_KEY    = 'prescription.created';
 const PRESCRIPTION_CREATED_QUEUE  = 'prescription.created.q';
+const APPOINTMENT_CANCELLED_KEY   = 'appointment.cancelled';
+const APPOINTMENT_CANCELLED_QUEUE = 'appointment.cancelled.q';
 
 let channel = null;
 
-async function initRabbit(url, onAppointmentConfirmed) {
+async function initRabbit(url, handlers) {
+  // handlers = { onAppointmentConfirmed, onAppointmentCancelled }
   let connection = null;
   for (let i = 0; i < 15 && !connection; i++) {
     try {
@@ -40,24 +44,46 @@ async function initRabbit(url, onAppointmentConfirmed) {
   await channel.assertQueue(PRESCRIPTION_CREATED_QUEUE, { durable: true });
   await channel.bindQueue(PRESCRIPTION_CREATED_QUEUE, EXCHANGE, PRESCRIPTION_CREATED_KEY);
 
+  await channel.assertQueue(APPOINTMENT_CANCELLED_QUEUE, { durable: true });
+  await channel.bindQueue(APPOINTMENT_CANCELLED_QUEUE, EXCHANGE, APPOINTMENT_CANCELLED_KEY);
+
+  // [ASYNC #1] Consumer appointment.confirmed -> crée le dossier
   await channel.consume(
     APPOINTMENT_CONFIRMED_QUEUE,
     async msg => {
       if (!msg) return;
       try {
         const payload = JSON.parse(msg.content.toString());
-        console.log('[rabbit] <- appointment.confirmed', payload);
-        await onAppointmentConfirmed(payload);
+        console.log('[rabbit ASYNC #1] <- appointment.confirmed', payload);
+        await handlers.onAppointmentConfirmed(payload);
         channel.ack(msg);
       } catch (e) {
-        console.error('[rabbit] error handling appointment.confirmed:', e.message);
+        console.error('[rabbit ASYNC #1] error handling appointment.confirmed:', e.message);
         channel.nack(msg, false, false);
       }
     },
     { noAck: false }
   );
 
-  console.log('[rabbit] Connected, exchange + queues ready');
+  // [ASYNC #3] Consumer appointment.cancelled -> note dans le dossier
+  await channel.consume(
+    APPOINTMENT_CANCELLED_QUEUE,
+    async msg => {
+      if (!msg) return;
+      try {
+        const payload = JSON.parse(msg.content.toString());
+        console.log('[rabbit ASYNC #3] <- appointment.cancelled', payload);
+        await handlers.onAppointmentCancelled(payload);
+        channel.ack(msg);
+      } catch (e) {
+        console.error('[rabbit ASYNC #3] error handling appointment.cancelled:', e.message);
+        channel.nack(msg, false, false);
+      }
+    },
+    { noAck: false }
+  );
+
+  console.log('[rabbit] Connected, 3 queues bound: confirmed (consume), created (publish), cancelled (consume)');
 }
 
 function publishPrescriptionCreated(event) {
@@ -71,7 +97,7 @@ function publishPrescriptionCreated(event) {
     Buffer.from(JSON.stringify(event)),
     { contentType: 'application/json', persistent: true }
   );
-  console.log('[rabbit] -> prescription.created', event);
+  console.log('[rabbit ASYNC #2] -> prescription.created', event);
 }
 
 module.exports = { initRabbit, publishPrescriptionCreated };

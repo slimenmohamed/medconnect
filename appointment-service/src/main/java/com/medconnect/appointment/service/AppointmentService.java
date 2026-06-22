@@ -7,6 +7,7 @@ import com.medconnect.appointment.entity.Appointment;
 import com.medconnect.appointment.entity.AppointmentStatus;
 import com.medconnect.appointment.exception.NotFoundException;
 import com.medconnect.appointment.feign.MedicalRecordsClient;
+import com.medconnect.appointment.messaging.AppointmentCancelledEvent;
 import com.medconnect.appointment.messaging.AppointmentConfirmedEvent;
 import com.medconnect.appointment.messaging.AppointmentEventPublisher;
 import com.medconnect.appointment.repository.AppointmentRepository;
@@ -91,10 +92,26 @@ public class AppointmentService {
         return Mapper.toDto(saved);
     }
 
-    public AppointmentDto cancel(Long id) {
+    /**
+     * Annulation d'un RDV. SCENARIO ASYNC #3 :
+     * publication d'un événement "appointment.cancelled" -> consommé par
+     * medical-records-service qui ajoute automatiquement une note de
+     * traçabilité dans le dossier médical du patient.
+     */
+    public AppointmentDto cancel(Long id, String reason) {
         Appointment appt = getOrThrow(id);
         appt.setStatut(AppointmentStatus.CANCELLED);
-        return Mapper.toDto(repository.save(appt));
+        Appointment saved = repository.save(appt);
+
+        eventPublisher.publishCancelled(AppointmentCancelledEvent.builder()
+                .appointmentId(saved.getId())
+                .patientId(saved.getPatientId())
+                .doctorId(saved.getDoctorId())
+                .reason(reason != null ? reason : "Annulation sans motif")
+                .cancelledAt(LocalDateTime.now())
+                .build());
+
+        return Mapper.toDto(saved);
     }
 
     public AppointmentDto complete(Long id) {

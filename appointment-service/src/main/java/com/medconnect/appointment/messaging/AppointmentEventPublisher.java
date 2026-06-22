@@ -16,10 +16,20 @@ public class AppointmentEventPublisher {
     private final RabbitTemplate rabbitTemplate;
 
     public void publishConfirmed(AppointmentConfirmedEvent event) {
-        log.info("[RabbitMQ] Publish {} -> {}", RabbitConfig.APPOINTMENT_CONFIRMED_KEY, event);
+        log.info("[RabbitMQ ASYNC #1] Publish {} -> {}", RabbitConfig.APPOINTMENT_CONFIRMED_KEY, event);
         rabbitTemplate.convertAndSend(
                 RabbitConfig.EXCHANGE,
                 RabbitConfig.APPOINTMENT_CONFIRMED_KEY,
+                event
+        );
+    }
+
+    /** Scénario ASYNC #3 : publie l'annulation d'un RDV. */
+    public void publishCancelled(AppointmentCancelledEvent event) {
+        log.info("[RabbitMQ ASYNC #3] Publish {} -> {}", RabbitConfig.APPOINTMENT_CANCELLED_KEY, event);
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.EXCHANGE,
+                RabbitConfig.APPOINTMENT_CANCELLED_KEY,
                 event
         );
     }

@@ -49,16 +49,35 @@ const MedicalRecord = require('./models/MedicalRecord');
   // 2) Mongo
   await connectMongo(MONGO_URI);
 
-  // 3) RabbitMQ avec callback pour appointment.confirmed
-  //    -> Scénario async (a) : on crée un MedicalRecord vide si le patient n'en a pas
-  await initRabbit(RABBIT_URL, async ({ patientId }) => {
-    if (patientId == null) return;
-    const existing = await MedicalRecord.findOne({ patientId: Number(patientId) });
-    if (!existing) {
-      const created = await MedicalRecord.create({ patientId: Number(patientId) });
-      console.log('[rabbit-handler] MedicalRecord auto-créé pour patient', patientId, '->', created._id.toString());
-    } else {
-      console.log('[rabbit-handler] MedicalRecord déjà présent pour patient', patientId);
+  // 3) RabbitMQ : 2 consumers + 1 publisher
+  //    [ASYNC #1] appointment.confirmed -> crée MedicalRecord vide si absent
+  //    [ASYNC #3] appointment.cancelled -> ajoute une note de traçabilité au dossier
+  await initRabbit(RABBIT_URL, {
+    onAppointmentConfirmed: async ({ patientId }) => {
+      if (patientId == null) return;
+      const existing = await MedicalRecord.findOne({ patientId: Number(patientId) });
+      if (!existing) {
+        const created = await MedicalRecord.create({ patientId: Number(patientId) });
+        console.log('[ASYNC #1] MedicalRecord auto-cree pour patient', patientId, '->', created._id.toString());
+      } else {
+        console.log('[ASYNC #1] MedicalRecord deja present pour patient', patientId);
+      }
+    },
+    onAppointmentCancelled: async ({ appointmentId, patientId, doctorId, reason, cancelledAt }) => {
+      if (patientId == null) return;
+      // Garantit qu'un dossier existe (create-or-find) puis y ajoute une note.
+      let record = await MedicalRecord.findOne({ patientId: Number(patientId) });
+      if (!record) {
+        record = await MedicalRecord.create({ patientId: Number(patientId) });
+        console.log('[ASYNC #3] MedicalRecord cree a la volee pour patient', patientId);
+      }
+      record.notes.push({
+        auteurId: 'system',
+        contenu: `[Annulation] RDV #${appointmentId} avec medecin #${doctorId} annule le ${cancelledAt}. Motif: ${reason}`,
+        date: new Date()
+      });
+      await record.save();
+      console.log('[ASYNC #3] Note d\'annulation ajoutee au dossier patient', patientId, '(RDV', appointmentId, ')');
     }
   });
 

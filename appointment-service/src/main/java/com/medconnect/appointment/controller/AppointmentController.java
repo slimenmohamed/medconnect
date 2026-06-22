@@ -59,10 +59,16 @@ public class AppointmentController {
         return service.confirm(id);
     }
 
+    /**
+     * Annulation d'un RDV. Publie un événement RabbitMQ "appointment.cancelled"
+     * (SCENARIO ASYNC #3) qui sera consommé par medical-records-service pour
+     * ajouter une note de traçabilité dans le dossier du patient.
+     */
     @PostMapping("/{id}/cancel")
     @PreAuthorize("isAuthenticated()")
-    public AppointmentDto cancel(@PathVariable Long id) {
-        return service.cancel(id);
+    public AppointmentDto cancel(@PathVariable Long id,
+                                 @RequestParam(value = "reason", required = false) String reason) {
+        return service.cancel(id, reason);
     }
 
     @PostMapping("/{id}/complete")
