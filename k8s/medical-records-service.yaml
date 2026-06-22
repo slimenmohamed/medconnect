@@ -1,35 +1,108 @@
-# Manifest K8s minimaliste pour medical-records-service (BONUS)
+# =====================================================================
+# medical-records-service (Node.js) - Deployment + Service + HPA
+# =====================================================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: medical-records-service
-  labels: { app: medical-records-service }
+  namespace: medconnect
+  labels:
+    app: medical-records-service
+    tier: backend
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
-    matchLabels: { app: medical-records-service }
+    matchLabels:
+      app: medical-records-service
   template:
     metadata:
-      labels: { app: medical-records-service }
+      labels:
+        app: medical-records-service
+        tier: backend
     spec:
       containers:
         - name: medical-records-service
           image: medconnect/medical-records-service:1.0.0
-          ports: [{ containerPort: 5001 }]
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { containerPort: 5001, name: http }
+          envFrom:
+            - configMapRef: { name: medconnect-config }
+            - secretRef:    { name: medconnect-secrets }
           env:
-            - { name: CONFIG_SERVER_URL, value: http://config-server:8888 }
-            - { name: EUREKA_HOST,       value: discovery-server }
+            - { name: HOSTNAME, value: "medical-records-service" }
+            - { name: MONGO_URI,
+                value: "mongodb://$(MONGO_INITDB_ROOT_USERNAME):$(MONGO_INITDB_ROOT_PASSWORD)@mongo:27017/medconnect_records?authSource=admin" }
+            - { name: RABBITMQ_URL,
+                value: "amqp://$(RABBITMQ_DEFAULT_USER):$(RABBITMQ_DEFAULT_PASS)@rabbitmq:5672" }
+          startupProbe:
+            httpGet: { path: /health, port: 5001 }
+            failureThreshold: 20
+            periodSeconds: 3
           readinessProbe:
             httpGet: { path: /health, port: 5001 }
-            initialDelaySeconds: 15
+            initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /health, port: 5001 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "192Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: medical-records-service
+  namespace: medconnect
+  labels: { app: medical-records-service }
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector: { app: medical-records-service }
   ports:
-    - { port: 5001, targetPort: 5001 }
+    - { port: 5001, targetPort: 5001, name: http }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: medical-records-service-hpa
+  namespace: medconnect
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: medical-records-service
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: medical-records-service-pdb
+  namespace: medconnect
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: medical-records-service

@@ -1,0 +1,9 @@
+# Namespace dédié au projet MedConnect.
+# Permet d'isoler les ressources et de poser des quotas/networkpolicies si besoin.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: medconnect
+  labels:
+    name: medconnect
+    project: medconnect

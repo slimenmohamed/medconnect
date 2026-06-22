@@ -1,0 +1,35 @@
+# ConfigMap partagé entre tous les microservices.
+# Variables non-sensibles uniquement (les secrets vont dans un Secret).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: medconnect-config
+  namespace: medconnect
+data:
+  SPRING_PROFILES_ACTIVE: "docker"
+  CONFIG_SERVER_URL: "http://config-server:8888"
+  EUREKA_URL: "http://discovery-server:8761/eureka/"
+  EUREKA_HOST: "discovery-server"
+  EUREKA_PORT: "8761"
+  KEYCLOAK_REALM: "medconnect"
+  KEYCLOAK_INTERNAL_URL: "http://keycloak:8080"
+  KEYCLOAK_PUBLIC_URL: "http://localhost:8180"
+  MYSQL_HOST: "mysql"
+  MYSQL_DATABASE: "medconnect_appointments"
+  MONGO_HOST: "mongo"
+---
+# Secrets (mots de passe DB, Rabbit, etc.).
+# En production, utiliser SealedSecrets ou un secret manager externe (Vault, AWS SM).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: medconnect-secrets
+  namespace: medconnect
+type: Opaque
+stringData:
+  MYSQL_USER: "medconnect"
+  MYSQL_PASSWORD: "medconnectpass"
+  MONGO_INITDB_ROOT_USERNAME: "root"
+  MONGO_INITDB_ROOT_PASSWORD: "rootpass"
+  RABBITMQ_DEFAULT_USER: "medconnect"
+  RABBITMQ_DEFAULT_PASS: "medconnectpass"
