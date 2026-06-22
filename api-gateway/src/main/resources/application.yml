@@ -1,0 +1,54 @@
+# =========================================================
+# api-gateway - bootstrap
+# La config réelle (routes, security) vient du config-server
+# =========================================================
+spring:
+  application:
+    name: api-gateway
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+
+# Profil local : pour tester le gateway seul sans config-server ni Keycloak
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  cloud:
+    gateway:
+      routes:
+        - id: patients-route
+          uri: lb://APPOINTMENT-SERVICE
+          predicates:
+            - Path=/api/patients/**
+        - id: doctors-route
+          uri: lb://APPOINTMENT-SERVICE
+          predicates:
+            - Path=/api/doctors/**
+        - id: appointments-route
+          uri: lb://APPOINTMENT-SERVICE
+          predicates:
+            - Path=/api/appointments/**
+        - id: records-route
+          uri: lb://MEDICAL-RECORDS-SERVICE
+          predicates:
+            - Path=/api/records/**
+        - id: prescriptions-route
+          uri: lb://MEDICAL-RECORDS-SERVICE
+          predicates:
+            - Path=/api/prescriptions/**
+
+server:
+  port: 8080
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
