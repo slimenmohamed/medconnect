@@ -1,0 +1,83 @@
+/* =========================================================
+   Thème MedConnect - login Keycloak (override léger)
+   Couleurs reprises du frontend Angular pour cohérence.
+   ========================================================= */
+
+:root {
+  --mc-primary: #1976d2;
+  --mc-primary-dark: #0d47a1;
+  --mc-bg: #f5f9ff;
+  --mc-text: #0f172a;
+  --mc-card: #ffffff;
+  --mc-radius: 14px;
+}
+
+body.login-pf body,
+body {
+  background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%) !important;
+  color: var(--mc-text);
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.login-pf-page {
+  background: transparent !important;
+}
+
+#kc-header-wrapper {
+  color: var(--mc-primary-dark) !important;
+  text-transform: none;
+  font-weight: 700;
+  font-size: 28px;
+  padding: 30px 0 16px;
+  letter-spacing: .5px;
+}
+
+#kc-header-wrapper::before {
+  content: "+ ";
+  color: var(--mc-primary);
+}
+
+.card-pf {
+  border: none !important;
+  border-radius: var(--mc-radius) !important;
+  box-shadow: 0 10px 40px rgba(13, 71, 161, 0.12) !important;
+  padding: 32px !important;
+  background: var(--mc-card) !important;
+}
+
+#kc-form-buttons input[type="submit"],
+.btn-primary {
+  background: var(--mc-primary) !important;
+  border-color: var(--mc-primary) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  padding: 10px 16px !important;
+}
+
+#kc-form-buttons input[type="submit"]:hover,
+.btn-primary:hover {
+  background: var(--mc-primary-dark) !important;
+  border-color: var(--mc-primary-dark) !important;
+}
+
+input.form-control {
+  border-radius: 8px !important;
+  border: 1px solid #cfd8dc !important;
+  height: 42px !important;
+}
+
+input.form-control:focus {
+  border-color: var(--mc-primary) !important;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2) !important;
+}
+
+a, a:hover {
+  color: var(--mc-primary-dark) !important;
+}
+
+#kc-info {
+  text-align: center;
+  margin-top: 14px;
+  font-size: 13px;
+  opacity: .8;
+}
