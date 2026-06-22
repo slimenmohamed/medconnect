@@ -1,0 +1,53 @@
+# =========================================
+# MedConnect - .gitignore
+# =========================================
+
+# ----- Java / Maven -----
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+.mvn/
+mvnw
+mvnw.cmd
+HELP.md
+
+# ----- IntelliJ / VS Code / Eclipse -----
+.idea/
+.vscode/
+.project
+.classpath
+.settings/
+.factorypath
+
+# ----- Node.js / Angular -----
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+# ----- Logs -----
+logs/
+*.log
+
+# ----- OS -----
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ----- Docker / env -----
+.env
+*.local.env
+
+# ----- Keycloak local binary (non versionné, on utilise Docker) -----
+keycloak-23.0.7/
+
+# ----- Mongo / MySQL data volumes (au cas où) -----
+data/
+mongo-data/
+mysql-data/
