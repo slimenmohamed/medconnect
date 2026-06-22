@@ -116,9 +116,9 @@ n'attaque pas tant que ses dépendances ne sont pas prêtes.
 
 ## 5. Scénarios démonstratifs
 
-### 5.1 Communications SYNCHRONES (Feign / Resilience4j)
+### 5.1 Communications SYNCHRONES (Feign / Resilience4j) — **3 scénarios**
 
-**Scénario A — vérification du dossier médical avant confirmation d'un RDV**
+**Scénario SYNC #1 — vérification du dossier médical avant confirmation d'un RDV**
 
 1. Login `doctor` -> page **Planning**.
 2. Cliquer **Confirmer** sur un RDV `PENDING`.
@@ -133,7 +133,7 @@ n'attaque pas tant que ses dépendances ne sont pas prêtes.
    tout (le listener Rabbit créera le dossier).
 5. Logs visibles : `docker compose logs appointment-service`.
 
-**Scénario B — historique des prescriptions affiché dans le détail d'un RDV**
+**Scénario SYNC #2 — historique des prescriptions affiché dans le détail d'un RDV**
 
 `AppointmentController#patientPrescriptions(patientId)` délègue via Feign :
 
@@ -144,11 +144,32 @@ GET http://medical-records-service/api/prescriptions/patient/{patientId}
 Exposé sur la route :
 `GET /api/appointments/patient/{patientId}/prescriptions` (consommée par le frontend).
 
-### 5.2 Communications ASYNCHRONES (RabbitMQ)
+**Scénario SYNC #3 — cascade SQL→NoSQL lors de la suppression d'un patient**
 
-Topologie : exchange topic `medconnect.exchange` avec 2 routing keys.
+1. ADMIN supprime un patient via `DELETE /api/patients/{id}`.
+2. `PatientService.delete()` supprime la ligne MySQL puis appelle **synchronement** :
 
-**Scénario A — `appointment.confirmed`**
+   ```
+   DELETE http://medical-records-service/api/records/patient/{patientId}
+   ```
+
+3. Node purge en parallèle `MedicalRecord` + toutes les `Prescription` du patient
+   (Mongo). Garantit la **cohérence cross-database** (pattern saga compensatoire).
+4. Test :
+
+   ```powershell
+   # Supprimer un patient -> son dossier Mongo doit être purgé instantanément
+   Invoke-RestMethod -Method DELETE -Headers @{Authorization="Bearer $tokAdmin"} `
+     -Uri http://localhost:8080/api/patients/10
+   # Vérifier (doit renvoyer 404)
+   Invoke-RestMethod -Uri http://localhost:8080/api/records/patient/10 -Headers @{Authorization="Bearer $tokAdmin"}
+   ```
+
+### 5.2 Communications ASYNCHRONES (RabbitMQ) — **3 scénarios**
+
+Topologie : exchange topic `medconnect.exchange` avec **3 routing keys / 3 queues**.
+
+**Scénario ASYNC #1 — `appointment.confirmed`** (Java -> Node, création auto de dossier)
 
 1. `doctor` confirme un RDV (cf. ci-dessus).
 2. `AppointmentEventPublisher` publie un `AppointmentConfirmedEvent` sur
@@ -159,12 +180,31 @@ Topologie : exchange topic `medconnect.exchange` avec 2 routing keys.
 4. Visualiser dans RabbitMQ Management
    (<http://localhost:15672> > Queues > `appointment.confirmed.q` > Get messages).
 
-**Scénario B — `prescription.created`**
+**Scénario ASYNC #2 — `prescription.created`** (Node -> Java, RDV passe COMPLETED)
 
 1. `doctor` crée une prescription depuis la page **Prescription** du frontend.
 2. Le contrôleur Node publie un `prescription.created` sur RabbitMQ.
 3. `PrescriptionEventListener` (côté Java) reçoit l'événement et marque le
    RDV correspondant en `COMPLETED`.
+
+**Scénario ASYNC #3 — `appointment.cancelled`** (Java -> Node, note de traçabilité)
+
+1. Un PATIENT ou ADMIN annule un RDV via `POST /api/appointments/{id}/cancel?reason=...`.
+2. `AppointmentService.cancel()` publie un `AppointmentCancelledEvent` sur
+   `appointment.cancelled.q` avec `appointmentId`, `patientId`, `doctorId`, `reason`, `cancelledAt`.
+3. Le **consumer Node** (handler `onAppointmentCancelled`) ajoute automatiquement
+   une note `[Annulation] RDV #X annulé le DATE. Motif: ...` dans le dossier
+   médical du patient -> traçabilité métier.
+4. Vérifier :
+
+   ```powershell
+   # Annuler
+   Invoke-RestMethod -Method POST -Headers @{Authorization="Bearer $tokAdmin"} `
+     -Uri "http://localhost:8080/api/appointments/6/cancel?reason=Patient%20indisponible"
+   # Voir la note ajoutée dans le dossier
+   (Invoke-RestMethod -Uri "http://localhost:8080/api/records/patient/1" `
+     -Headers @{Authorization="Bearer $tokAdmin"}).notes
+   ```
 
 ### 5.3 Documentation Swagger centralisée (bonus)
 
