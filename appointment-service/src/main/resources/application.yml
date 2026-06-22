@@ -1,0 +1,89 @@
+# =========================================================
+# appointment-service - bootstrap
+# La config réelle (datasource, security, rabbit...) vient du config-server
+# via la propriété spring.config.import (Spring Boot 2.4+).
+# =========================================================
+spring:
+  application:
+    name: appointment-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  config:
+    # optional: ne bloque pas le démarrage en local si config-server est down
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+
+# Profil local : H2 + pas de Keycloak, Eureka pointe sur localhost
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:h2:mem:appointmentsdb;DB_CLOSE_DELAY=-1;MODE=MySQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  sql:
+    init:
+      mode: always
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Désactivé en local (voir SecurityConfig)
+          issuer-uri:
+
+server:
+  port: 8081
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+medconnect:
+  feign:
+    medical-records-service-name: medical-records-service
+
+feign:
+  circuitbreaker:
+    enabled: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      medicalRecordsCB:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.medconnect: DEBUG
+
+# Profil docker : tout vient du config-server, ce bloc est minimal
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
