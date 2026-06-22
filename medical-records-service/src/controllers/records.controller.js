@@ -1,4 +1,5 @@
 const MedicalRecord = require('../models/MedicalRecord');
+const Prescription  = require('../models/Prescription');
 
 exports.list = async (req, res) => {
   const records = await MedicalRecord.find();
@@ -49,4 +50,28 @@ exports.delete = async (req, res) => {
   const ok = await MedicalRecord.findByIdAndDelete(req.params.id);
   if (!ok) return res.status(404).json({ error: 'Not found' });
   res.status(204).end();
+};
+
+/**
+ * SCENARIO SYNC #3 (Feign): purge complete du patient.
+ * Appele par appointment-service quand un patient est supprime cote MySQL.
+ * On supprime dossier + prescriptions associees pour garantir la coherence
+ * cross-database.
+ */
+exports.purgePatient = async (req, res) => {
+  const patientId = Number(req.params.patientId);
+  if (Number.isNaN(patientId)) {
+    return res.status(400).json({ error: 'Invalid patientId' });
+  }
+  const [delRecords, delPrescriptions] = await Promise.all([
+    MedicalRecord.deleteMany({ patientId }),
+    Prescription.deleteMany({ patientId })
+  ]);
+  console.log(`[Feign SYNC #3] Purge patient ${patientId} -> records=${delRecords.deletedCount}, prescriptions=${delPrescriptions.deletedCount}`);
+  res.json({
+    status: 'purged',
+    patientId,
+    deletedRecords: delRecords.deletedCount,
+    deletedPrescriptions: delPrescriptions.deletedCount
+  });
 };

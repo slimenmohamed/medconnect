@@ -76,4 +76,24 @@ router.post('/:id/notes', authenticate, hasRole('ADMIN', 'DOCTOR'), ctrl.addNote
 
 router.delete('/:id', authenticate, hasRole('ADMIN'), ctrl.delete);
 
+/**
+ * @swagger
+ * /api/records/patient/{patientId}:
+ *   delete:
+ *     tags: [Records]
+ *     summary: Purge complète du dossier + prescriptions d'un patient (SYNC Feign #3)
+ *     description: |
+ *       Appelé par appointment-service via Feign quand un patient est supprimé
+ *       dans MySQL, pour garantir la cohérence cross-database (Mongo).
+ *     parameters:
+ *       - in: path
+ *         name: patientId
+ *         required: true
+ *         schema: { type: integer }
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Purge effectuée }
+ */
+router.delete('/patient/:patientId', authenticate, hasRole('ADMIN'), ctrl.purgePatient);
+
 module.exports = router;

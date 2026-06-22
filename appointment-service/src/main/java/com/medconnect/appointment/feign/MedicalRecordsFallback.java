@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Fallback Feign : appelé si le service medical-records est indisponible
@@ -27,5 +28,11 @@ public class MedicalRecordsFallback implements MedicalRecordsClient {
     public List<PrescriptionDto> getPrescriptionsByPatient(Long patientId) {
         log.warn("[Fallback] medical-records-service indisponible (prescriptions) patient {}", patientId);
         return Collections.emptyList();
+    }
+
+    @Override
+    public Map<String, Object> purgePatientData(Long patientId) {
+        log.warn("[Fallback] medical-records-service indisponible (purge) patient {} — purge differee", patientId);
+        return Map.of("status", "fallback", "patientId", patientId, "purged", false);
     }
 }
